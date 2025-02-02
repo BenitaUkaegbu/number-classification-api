@@ -1,70 +1,49 @@
 from fastapi import FastAPI, HTTPException
-import requests
+from fastapi.responses import JSONResponse
+from math import pow
 
-app = FastAPI()  # This defines the app instance
+app = FastAPI()
 
-
-def is_armstrong(number: int) -> bool:
-    """Check if a number is an Armstrong number."""
-    digits = list(map(int, str(number)))
-    return sum(d ** len(digits) for d in digits) == number
-
-
-def get_factors(number: int) -> list:
-    """Get all factors of the number."""
-    return [i for i in range(1, number + 1) if number % i == 0]
-
+def is_armstrong(num: int) -> bool:
+    digits = [int(d) for d in str(num)]
+    return num == sum(pow(d, len(digits)) for d in digits)
 
 @app.get("/")
 def home():
     return {"message": "Welcome to the Number Classification API!"}
 
-
 @app.get("/api/classify-number")
 def classify_number(number: str):
     try:
-        num = int(number)  # Convert input to integer
+        num = int(number)  # Ensure input is an integer
     except ValueError:
-        raise HTTPException(status_code=400, detail={"number": number, "error": True})
+        # Return an error response for invalid inputs
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "number": number,
+                "error": True
+            }
+        )
 
-    is_prime = num > 1 and all(num % i != 0 for i in range(2, int(num ** 0.5) + 1))
-    is_perfect = sum(i for i in range(1, num) if num % i == 0) == num
-    digit_sum = sum(map(int, str(num)))
-    armstrong = is_armstrong(num)
-    even = num % 2 == 0
-
-    # Determine properties
+    # Calculate properties
     properties = []
-    if armstrong:
+    if is_armstrong(num):
         properties.append("armstrong")
-    properties.append("even" if even else "odd")
+    properties.append("odd" if num % 2 != 0 else "even")
 
-    # Fetch fun fact from Numbers API
-    try:
-        response = requests.get(f"http://numbersapi.com/{num}/math")
-        if response.status_code == 200:
-            fun_fact = response.text
-        else:
-            fun_fact = "No fun fact available for this number."
-    except requests.RequestException:
-        fun_fact = "Error fetching fun fact."
-
-    # Build the response
+    # Construct response
     response = {
         "number": num,
-        "is_prime": is_prime,
-        "is_perfect": is_perfect,
-        "is_fibonacci": is_fibonacci(num),
+        "is_prime": num > 1 and all(num % i != 0 for i in range(2, int(num ** 0.5) + 1)),
+        "is_perfect": sum(i for i in range(1, num) if num % i == 0) == num,
+        "is_fibonacci": False,  # Optional: Calculate Fibonacci if needed
         "properties": properties,
-        "digit_sum": digit_sum,
-        "factors": get_factors(num),
-        "fun_fact": fun_fact,
+        "factors": [i for i in range(1, num + 1) if num % i == 0],
+        "digit_sum": sum(int(d) for d in str(num)),
+        "fun_fact": f"{num} is an Armstrong number because " +
+                    f"{'+'.join([f'{d}^{len(str(num))}' for d in str(num)])} = {num}"
+        if "armstrong" in properties else f"{num} is just an interesting number!"
     }
-    return response
 
-
-def is_fibonacci(n: int) -> bool:
-    """Check if a number is a Fibonacci number."""
-    x1, x2 = 5 * (n ** 2) + 4, 5 * (n ** 2) - 4
-    return any(x ** 0.5 == int(x ** 0.5) for x in (x1, x2))
-
+    return JSONResponse(content=response, status_code=200)
