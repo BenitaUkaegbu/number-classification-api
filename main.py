@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 import requests
 
 app = FastAPI()
@@ -6,13 +7,23 @@ app = FastAPI()
 @app.get("/api/classify-number")
 def classify_number(number: str):
     try:
-        # Convert input to an integer
-        num = int(number)  # Handles negative numbers too
+        # Convert input to a floating-point number first
+        num = float(number)
+        
+        # Check if it’s a whole number (valid integer)
+        if num.is_integer():
+            num = int(num)  # Convert to integer
+        else:
+            # Return a 400 if the number is not an integer
+            raise ValueError
     except ValueError:
-        # If conversion fails, return a 400 error
-        raise HTTPException(status_code=400, detail={"number": number, "error": True})
+        # If conversion fails, return a 400 error with the invalid input
+        return JSONResponse(
+            status_code=400,
+            content={"number": number, "error": True},
+        )
 
-    # Check if the number is prime
+    # Helper function to check if a number is prime
     def is_prime(n):
         if n <= 1:
             return False
@@ -29,7 +40,7 @@ def classify_number(number: str):
     if sum(int(d) ** len(str(num)) for d in str(abs(num))) == abs(num):
         properties.insert(0, "armstrong")
 
-    # Prepare fun fact using Numbers API
+    # Fetch a fun fact using the Numbers API
     try:
         response = requests.get(f"http://numbersapi.com/{num}/math?json")
         fun_fact = response.json().get("text", f"{num} is just an interesting number!")
