@@ -1,27 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse  # Import this for custom JSON responses
+from fastapi import FastAPI
 
 app = FastAPI()
 
 @app.get("/api/classify-number")
 def classify_number(number: str):
     try:
-        # Convert input to integer
-        num = int(float(number))
-        # Additional checks if required to ensure it's a valid integer
-        if float(number) != num:
-            raise ValueError
+        # Convert to integer
+        num = int(number)
     except ValueError:
-        # Raise an HTTPException for invalid input
-        raise HTTPException(status_code=400, detail={"number": number, "error": True})
+        # For invalid inputs, return 400 Bad Request with appropriate JSON
+        return JSONResponse(
+            status_code=400,
+            content={"number": number, "error": True},
+        )
 
-    # Process valid number
-    properties = ["even" if num % 2 == 0 else "odd"]
+    # Process valid numbers (add your logic here)
     response = {
         "number": num,
-        "is_prime": num > 1 and all(num % i != 0 for i in range(2, int(num ** 0.5) + 1)),
-        "is_perfect": sum(i for i in range(1, num) if num % i == 0) == num,
-        "properties": properties,
-        "digit_sum": sum(map(int, str(abs(num)))),
-        "fun_fact": f"{num} is just an interesting number!"
+        "is_prime": False,  # Example field
+        "is_perfect": False,  # Example field
+        "properties": ["even" if num % 2 == 0 else "odd"],  # Example field
+        "digit_sum": sum(int(digit) for digit in str(abs(num))),
+        "fun_fact": f"{num} is just an interesting number!",
     }
     return response
