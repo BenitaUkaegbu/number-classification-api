@@ -1,6 +1,18 @@
 from fastapi import FastAPI, HTTPException
+import requests
 
 app = FastAPI()  # This defines the app instance
+
+
+def is_armstrong(number: int) -> bool:
+    """Check if a number is an Armstrong number."""
+    digits = list(map(int, str(number)))
+    return sum(d ** len(digits) for d in digits) == number
+
+
+def get_factors(number: int) -> list:
+    """Get all factors of the number."""
+    return [i for i in range(1, number + 1) if number % i == 0]
 
 
 @app.get("/")
@@ -11,59 +23,48 @@ def home():
 @app.get("/api/classify-number")
 def classify_number(number: str):
     try:
-        num = int(number)
+        num = int(number)  # Convert input to integer
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "number": number,
-                "error": True,
-            },
-        )
+        raise HTTPException(status_code=400, detail={"number": number, "error": True})
 
-    # Check properties
+    is_prime = num > 1 and all(num % i != 0 for i in range(2, int(num ** 0.5) + 1))
+    is_perfect = sum(i for i in range(1, num) if num % i == 0) == num
+    digit_sum = sum(map(int, str(num)))
+    armstrong = is_armstrong(num)
+    even = num % 2 == 0
+
+    # Determine properties
     properties = []
-    if num % 2 == 0:
-        properties.append("even")
-    else:
-        properties.append("odd")
-
-    # Check if Armstrong number
-    digit_sum = sum(int(digit) ** len(str(num)) for digit in str(num))
-    if digit_sum == num:
+    if armstrong:
         properties.append("armstrong")
+    properties.append("even" if even else "odd")
 
-    # Check if Fibonacci number
-    def is_perfect_square(x):
-        return int(x**0.5) ** 2 == x
+    # Fetch fun fact from Numbers API
+    try:
+        response = requests.get(f"http://numbersapi.com/{num}/math")
+        if response.status_code == 200:
+            fun_fact = response.text
+        else:
+            fun_fact = "No fun fact available for this number."
+    except requests.RequestException:
+        fun_fact = "Error fetching fun fact."
 
-    is_fibonacci = is_perfect_square(5 * num * num + 4) or is_perfect_square(
-        5 * num * num - 4
-    )
-
-    # Check if Perfect number
-    def get_factors(n):
-        return [i for i in range(1, n + 1) if n % i == 0]
-
-    factors = get_factors(num)
-    is_perfect = sum(factors[:-1]) == num  # Exclude the number itself
-
-    # Generate a fun fact
-    fun_fact = f"{num} is an interesting number!"
-    if num == 371:  # Specific fun fact for Armstrong number
-        fun_fact = (
-            f"{num} is an Armstrong number because the sum of its digits "
-            f"raised to the power of their count equals the number."
-        )
-
+    # Build the response
     response = {
         "number": num,
-        "is_prime": num > 1 and all(num % i != 0 for i in range(2, int(num**0.5) + 1)),
+        "is_prime": is_prime,
         "is_perfect": is_perfect,
-        "is_fibonacci": is_fibonacci,
+        "is_fibonacci": is_fibonacci(num),
         "properties": properties,
-        "factors": factors,
-        "class_sum": sum(int(digit) for digit in str(num)),
+        "digit_sum": digit_sum,
+        "factors": get_factors(num),
         "fun_fact": fun_fact,
     }
     return response
+
+
+def is_fibonacci(n: int) -> bool:
+    """Check if a number is a Fibonacci number."""
+    x1, x2 = 5 * (n ** 2) + 4, 5 * (n ** 2) - 4
+    return any(x ** 0.5 == int(x ** 0.5) for x in (x1, x2))
+
