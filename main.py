@@ -1,5 +1,5 @@
-from fastapi.responses import JSONResponse  # Import this for custom JSON responses
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -9,19 +9,19 @@ def classify_number(number: str):
         # Convert to integer
         num = int(number)
     except ValueError:
-        # For invalid inputs, return 400 Bad Request with appropriate JSON
+        # Return 400 status code with the error JSON
         return JSONResponse(
             status_code=400,
             content={"number": number, "error": True},
         )
 
-    # Process valid numbers (add your logic here)
+    # Process valid numbers (e.g., 42 or -42)
     response = {
         "number": num,
-        "is_prime": False,  # Example field
-        "is_perfect": False,  # Example field
-        "properties": ["even" if num % 2 == 0 else "odd"],  # Example field
+        "is_prime": False,  # Example logic for primes
+        "is_perfect": False,  # Example logic for perfect numbers
+        "properties": ["even" if num % 2 == 0 else "odd"],
         "digit_sum": sum(int(digit) for digit in str(abs(num))),
         "fun_fact": f"{num} is just an interesting number!",
     }
-    return response
+    return JSONResponse(content=response)
