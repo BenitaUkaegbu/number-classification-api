@@ -80,7 +80,6 @@ The API is deployed on Render and is accessible at:
 https://number-classification-api.onrender.com
 
 Author
-This project was created by Benita Ukaegbu
+ Benita Ukaegbu
 
-License
-This project is licensed under the MIT License.
+
